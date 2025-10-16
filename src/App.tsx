@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
-import Dashboard from './components/Dashboard/Dashboard';
-import PatientList from './components/Patients/PatientList';
-import MedicalRecordList from './components/MedicalRecords/MedicalRecordList';
-import CostList from './components/Costs/CostList';
+import Dashboard from './modules/Dashboard/view/DashboardView';
+import PatientList from './modules/Patients/view/PatientListView';
+import MedicalRecordList from './modules/MedicalRecords/view/MedicalRecordListView';
+import CostList from './modules/Costs/view/CostListView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
