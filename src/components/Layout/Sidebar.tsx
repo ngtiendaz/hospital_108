@@ -19,7 +19,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'patients', label: 'Bệnh nhân', icon: Users },
+    { id: 'patients', label: 'Nhập viện', icon: Users },
     { id: 'records', label: 'Hồ sơ bệnh án', icon: FileText },
     { id: 'costs', label: 'Chi phí & Viện phí', icon: DollarSign },
   ];
@@ -47,8 +47,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
                 <Heart className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">MedCare</h1>
-                <p className="text-sm text-gray-500">Quản lý bệnh viện</p>
+                <h1 className="text-xl font-bold text-gray-800">Bệnh viện 108</h1>
+                <p className="text-sm text-gray-500">Quản lý nội trú</p>
               </div>
             </div>
             <button

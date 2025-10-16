@@ -13,8 +13,8 @@ function App() {
   const getTabTitle = () => {
     const titles = {
       dashboard: 'Dashboard',
-      patients: 'Quản lý Bệnh nhân',
-      records: 'Hồ sơ Bệnh án Điện tử',
+      patients: 'Nhập viện',
+      records: 'Hồ sơ bệnh án',
       costs: 'Chi phí & Viện phí'
     };
     return titles[activeTab as keyof typeof titles] || 'Dashboard';
