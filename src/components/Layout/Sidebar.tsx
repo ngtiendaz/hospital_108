@@ -6,7 +6,11 @@ import {
   BarChart3, 
   Heart,
   Menu,
-  X
+  X,
+  ClipboardCheck,
+  Activity,
+  UserCheck,
+  CheckCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,7 +25,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'patients', label: 'Nhập viện', icon: Users },
     { id: 'records', label: 'Hồ sơ bệnh án', icon: FileText },
-    { id: 'costs', label: 'Chi phí & Viện phí', icon: DollarSign },
+    { id: 'tinhTrang', label: 'Tình trạng sức khỏe', icon:  Heart},
+    // { id: 'costs', label: 'Chi phí & Viện phí', icon: DollarSign },
+    { id: 'yLenh', label: 'Phác đồ y lệnh', icon:  Activity},
+    { id: 'xuatVien', label: 'Xuất viện', icon:  CheckCircle},
   ];
 
   return (
