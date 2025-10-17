@@ -6,6 +6,7 @@ import PatientList from './modules/Patients/view/PatientListView';
 import MedicalRecordList from './modules/MedicalRecords/view/MedicalRecordListView';
 import CostList from './modules/Costs/view/CostListView';
 import YLenhList from './modules/PhacDoYLenh/view/yLenhView';
+import TinhTrangSucKhoeView from './modules/TinhTrangBenhNhan/view/tinhTrangView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,7 +17,7 @@ function App() {
       dashboard: 'Dashboard',
       patients: 'Nhập viện',
       records: 'Hồ sơ bệnh án',
-      // costs: 'Chi phí & Viện phí',
+      tinhTrang: 'Tình trạng sức khỏe',
       yLenh: 'Phác đồ y lệnh'
     };
     return titles[activeTab as keyof typeof titles] || 'Dashboard';
@@ -30,8 +31,8 @@ function App() {
         return <PatientList />;
       case 'records':
         return <MedicalRecordList />;
-      // case 'costs':
-      //   return <CostList />;
+      case 'tinhTrang':
+        return <TinhTrangSucKhoeView />;
       case 'yLenh':
         return < YLenhList/>;
       default:
