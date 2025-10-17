@@ -1,7 +1,12 @@
 export interface YLenh {
-  maYLenh: number;        // ID y lệnh
-  maBenhAn: number;       // Liên kết với hồ sơ bệnh án
-  noiDung: string;         // Nội dung y lệnh
-  trangThai: string;       // Trạng thái y lệnh ("Đang thực hiện", "Chờ thực hiện", ...)
-  fileData: string | null; // File đính kèm, null nếu không có
+  maYLenh: number;
+  maBenhAn: number;
+  maBacSi: string;
+  hoTen: string;
+  phong: string;
+  giuong: string;
+  noiDung: string;
+  trangThai: string;
+  fileData: string | null;
+  ngayGio: string; // ✨ SỬA LỖI: Thêm lại trường này
 }

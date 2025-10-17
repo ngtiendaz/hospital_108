@@ -1,5 +1,7 @@
 export interface HoSoBenhAn {
   maBenhAn: number;
+  maBenhNhan: string;      // Thêm mới
+  hoTen: string;            // Thêm mới
   maNhapVien: number;
   ngayLap: string;
   tomTatBenhAn: string;

@@ -14,8 +14,11 @@ export const hoSoBenhAnController = {
       if (!res.ok) throw new Error(`Lỗi khi gọi API: ${res.status}`);
 
       const data = await res.json();
+      // Ánh xạ thêm các trường mới
       return data.map((item: any) => ({
         maBenhAn: item.maBenhAn,
+        maBenhNhan: item.maBenhNhan, // Thêm mới
+        hoTen: item.hoTen,           // Thêm mới
         maNhapVien: item.maNhapVien,
         ngayLap: item.ngayLap,
         tomTatBenhAn: item.tomTatBenhAn,
@@ -37,7 +40,7 @@ export const hoSoBenhAnController = {
     try {
       const res = await fetch(`${API}/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Lỗi khi gọi API: ${res.status}`);
-      return await res.json();
+      return await res.json(); // API sẽ tự trả về đối tượng đầy đủ
     } catch (err) {
       console.error('❌ Lỗi khi lấy chi tiết hồ sơ bệnh án:', err);
       return null;
@@ -46,6 +49,8 @@ export const hoSoBenhAnController = {
 
   // ➕ Thêm hồ sơ bệnh án mới
   async add(data: {
+    maBenhNhan: string; // Thêm mới
+    hoTen: string;       // Thêm mới
     maNhapVien: number;
     ngayLap: string;
     tomTatBenhAn: string;
@@ -74,6 +79,8 @@ export const hoSoBenhAnController = {
   async update(
     id: number,
     data: {
+      maBenhNhan: string; // Thêm mới
+      hoTen: string;       // Thêm mới
       maNhapVien: number;
       ngayLap: string;
       tomTatBenhAn: string;
