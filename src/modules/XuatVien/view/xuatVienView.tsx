@@ -1,5 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+// ✨ THAY ĐỔI 1: Import thêm useRef, jsPDF, và html2canvas
+import React, { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 import {
   Search,
   User,
@@ -10,7 +14,8 @@ import {
   X,
   ClipboardList,
   Printer,
-  Plus
+  Plus,
+  Loader2 // Icon cho trạng thái loading
 } from 'lucide-react';
 import { xuatVienController } from '../controller/xuatVienController';
 import { XuatVien } from '../model/xuatVienModel';
@@ -29,8 +34,11 @@ const XuatVienView: React.FC = () => {
   const [showMedicalRecordModal, setShowMedicalRecordModal] = useState(false);
   const [medicalRecords, setMedicalRecords] = useState<HoSoBenhAn[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
-  
   const [selectedRecordForDischarge, setSelectedRecordForDischarge] = useState<HoSoBenhAn | null>(null);
+  
+  // ✨ THAY ĐỔI 2: Thêm state cho việc tạo PDF và ref cho nội dung modal
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
 
   const [dischargeForm, setDischargeForm] = useState<{
     maBenhAn: number;
@@ -40,7 +48,6 @@ const XuatVienView: React.FC = () => {
     ghiChu: string;
   } | null>(null);
 
-  // Load danh sách chính
   const loadDischargedRecords = async () => {
     setLoading(true);
     const data = await xuatVienController.getAll();
@@ -48,11 +55,8 @@ const XuatVienView: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadDischargedRecords();
-  }, []);
+  useEffect(() => { loadDischargedRecords(); }, []);
   
-  // Mở modal và tải hồ sơ có thể xuất viện
   const handleOpenAddModal = async () => {
     setShowMedicalRecordModal(true);
     setModalLoading(true);
@@ -62,7 +66,6 @@ const XuatVienView: React.FC = () => {
     setModalLoading(false);
   };
 
-  // Lưu lại toàn bộ thông tin hồ sơ khi chọn
   const handleSelectRecordForDischarge = (record: HoSoBenhAn) => {
     setSelectedRecordForDischarge(record);
     setShowMedicalRecordModal(false);
@@ -70,19 +73,16 @@ const XuatVienView: React.FC = () => {
       maBenhAn: record.maBenhAn,
       hoTen: record.hoTen,
       ngayRaVien: new Date().toISOString().split('T')[0],
-      trangThai: 'Đã xuất viện', // Giá trị mặc định
+      trangThai: 'Đã xuất viện',
       ghiChu: '',
     });
   };
 
-  // Cập nhật trạng thái hồ sơ sau khi xuất viện thành công
   const handleAddDischarge = async () => {
     if (!dischargeForm || !selectedRecordForDischarge) {
       alert('❌ Đã có lỗi xảy ra, vui lòng thử lại.');
       return;
     };
-
-    // 1. Thêm thông tin vào bảng xuất viện
     const addSuccess = await xuatVienController.add({
       maBenhAn: dischargeForm.maBenhAn,
       ngayRaVien: dischargeForm.ngayRaVien,
@@ -91,23 +91,18 @@ const XuatVienView: React.FC = () => {
     });
     
     if (addSuccess) {
-      // 2. Nếu thành công, cập nhật trạng thái của hồ sơ bệnh án gốc
-      console.log('Đang cập nhật trạng thái hồ sơ bệnh án...');
       const updateSuccess = await hoSoBenhAnController.update(
         selectedRecordForDischarge.maBenhAn,
         {
           ...selectedRecordForDischarge,
-          trangThai: dischargeForm.trangThai, // Cập nhật trạng thái được chọn từ combobox
+          trangThai: dischargeForm.trangThai,
         }
       );
-
       if (updateSuccess) {
         alert('✅ Thêm thông tin xuất viện và cập nhật hồ sơ thành công!');
       } else {
         alert('✅ Thêm thông tin xuất viện thành công, nhưng có lỗi khi cập nhật trạng thái hồ sơ bệnh án.');
       }
-      
-      // 3. Dọn dẹp và tải lại danh sách
       setDischargeForm(null);
       setSelectedRecordForDischarge(null);
       await loadDischargedRecords();
@@ -116,13 +111,11 @@ const XuatVienView: React.FC = () => {
     }
   };
   
-  // Hàm hủy và dọn dẹp state
   const handleCancelDischargeForm = () => {
     setDischargeForm(null);
     setSelectedRecordForDischarge(null);
   };
 
-  // Lọc danh sách
   const filteredRecords = dischargedList.filter((record) => {
     const search = searchTerm.toLowerCase();
     return (
@@ -133,9 +126,55 @@ const XuatVienView: React.FC = () => {
     );
   });
   
-  const handleExportPDF = () => {
-    alert("Chức năng xuất PDF đang được phát triển!");
+  // ✨ THAY ĐỔI 3: Viết lại logic hàm xuất PDF
+  const handleExportPDF = async () => {
+    const input = pdfContentRef.current;
+    if (!input || !selectedRecord) {
+        alert("Không tìm thấy nội dung để xuất file PDF.");
+        return;
+    }
+
+    setIsGeneratingPdf(true); // Bắt đầu loading
+
+    try {
+        // Sử dụng html2canvas để chụp ảnh div nội dung
+        const canvas = await html2canvas(input, { scale: 2 }); // Tăng scale để chất lượng ảnh tốt hơn
+        const imgData = canvas.toDataURL('image/png');
+
+        // Khởi tạo file PDF với khổ A4
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        // Tính toán tỉ lệ của ảnh để vừa với trang A4
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const canvasAspectRatio = canvasWidth / canvasHeight;
+        const pdfAspectRatio = pdfWidth / pdfHeight;
+
+        let finalImgWidth = pdfWidth;
+        let finalImgHeight = pdfWidth / canvasAspectRatio;
+
+        if (finalImgHeight > pdfHeight) {
+            finalImgHeight = pdfHeight;
+            finalImgWidth = pdfHeight * canvasAspectRatio;
+        }
+
+        // Thêm ảnh vào PDF và căn giữa
+        const xOffset = (pdfWidth - finalImgWidth) / 2;
+        const yOffset = 10; // Thêm một chút lề trên
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalImgWidth, finalImgHeight);
+        
+        // Lưu file PDF
+        pdf.save(`giay-xuat-vien-${selectedRecord.maBenhAn}-${selectedRecord.hoTen}.pdf`);
+    } catch (error) {
+        console.error("Lỗi khi tạo PDF:", error);
+        alert("Đã có lỗi xảy ra trong quá trình xuất file PDF.");
+    } finally {
+        setIsGeneratingPdf(false); // Kết thúc loading
+    }
   };
+
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -205,7 +244,11 @@ const XuatVienView: React.FC = () => {
                     <td className="px-6 py-4">{record.hoTen}</td>
                     <td className="px-6 py-4">{formatDate(record.ngayRaVien)}</td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${
+                        record.trangThai === 'Đã xuất viện' ? 'bg-green-100 text-green-800' :
+                        record.trangThai === 'Chuyển viện' ? 'bg-purple-100 text-purple-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
                         <CheckCircle className="w-3.5 h-3.5"/>
                         {record.trangThai}
                       </span>
@@ -228,44 +271,62 @@ const XuatVienView: React.FC = () => {
       {selectedRecord && (
          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto flex flex-col">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Thông tin xuất viện</h2>
-                <p className="text-gray-600">Bệnh nhân: <span className="font-semibold">{selectedRecord.hoTen}</span></p>
-              </div>
-              <button onClick={() => setSelectedRecord(null)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 md:p-8 space-y-6 bg-white">
-              <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center"><User className="w-5 h-5 mr-2 text-blue-600" />Thông tin cá nhân</h3>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-gray-700'>
-                      <p><span className='font-medium'>Mã bệnh nhân:</span> {selectedRecord.maBenhNhan}</p>
-                      <p><span className='font-medium'>Số CMND/CCCD:</span> {selectedRecord.soCMND}</p>
-                      <p><span className='font-medium'>Ngày sinh:</span> {formatDate(selectedRecord.ngaySinh)}</p>
-                      <p><span className='font-medium'>Giới tính:</span> {selectedRecord.gioiTinh}</p>
+            {/* ✨ THAY ĐỔI 4: Gắn ref vào div cha của nội dung cần xuất PDF */}
+            <div ref={pdfContentRef} className="bg-white rounded-xl">
+                <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10 rounded-t-xl">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Thông tin xuất viện</h2>
+                    <p className="text-gray-600">Bệnh nhân: <span className="font-semibold">{selectedRecord.hoTen}</span></p>
                   </div>
-              </div>
-              <div className="p-4 bg-green-50/50 rounded-lg border border-green-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center"><ClipboardList className="w-5 h-5 mr-2 text-green-600" />Chi tiết xuất viện</h3>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-gray-700'>
-                  <p><span className='font-medium'>Mã bệnh án:</span> {selectedRecord.maBenhAn}</p>
-                  <p><span className='font-medium'>Ngày ra viện:</span> {formatDate(selectedRecord.ngayRaVien)}</p>
-                  <p className="md:col-span-2"><span className='font-medium'>Tình trạng lúc ra viện:</span> {selectedRecord.tinhTrang}</p>
-                  <p className="md:col-span-2"><span className='font-medium'>Trạng thái hồ sơ:</span> {selectedRecord.trangThai}</p>
+                  <button onClick={() => setSelectedRecord(null)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-              </div>
-              <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center"><Info className="w-5 h-5 mr-2 text-yellow-600"/>Ghi chú</h3>
-                  <p className="text-gray-700 bg-gray-50 p-4 rounded-lg min-h-[80px] whitespace-pre-wrap border">
-                    {selectedRecord.ghiChu || 'Không có ghi chú.'}
-                  </p>
-              </div>
+                <div className="p-6 md:p-8 space-y-6 bg-white">
+                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center"><User className="w-5 h-5 mr-2 text-blue-600" />Thông tin cá nhân</h3>
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-gray-700'>
+                          <p><span className='font-medium'>Mã bệnh nhân:</span> {selectedRecord.maBenhNhan}</p>
+                          <p><span className='font-medium'>Số CMND/CCCD:</span> {selectedRecord.soCMND}</p>
+                          <p><span className='font-medium'>Ngày sinh:</span> {formatDate(selectedRecord.ngaySinh)}</p>
+                          <p><span className='font-medium'>Giới tính:</span> {selectedRecord.gioiTinh}</p>
+                      </div>
+                  </div>
+                  <div className="p-4 bg-green-50/50 rounded-lg border border-green-200">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center"><ClipboardList className="w-5 h-5 mr-2 text-green-600" />Chi tiết xuất viện</h3>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-gray-700'>
+                      <p><span className='font-medium'>Mã bệnh án:</span> {selectedRecord.maBenhAn}</p>
+                      <p><span className='font-medium'>Ngày ra viện:</span> {formatDate(selectedRecord.ngayRaVien)}</p>
+                      <p className="md:col-span-2"><span className='font-medium'>Tình trạng lúc ra viện:</span> {selectedRecord.tinhTrang}</p>
+                      <p className="md:col-span-2"><span className='font-medium'>Trạng thái hồ sơ:</span> {selectedRecord.trangThai}</p>
+                    </div>
+                  </div>
+                  <div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center"><Info className="w-5 h-5 mr-2 text-yellow-600"/>Ghi chú</h3>
+                      <p className="text-gray-700 bg-gray-50 p-4 rounded-lg min-h-[80px] whitespace-pre-wrap border">
+                        {selectedRecord.ghiChu || 'Không có ghi chú.'}
+                      </p>
+                  </div>
+                </div>
             </div>
-            <div className="p-6 border-t border-gray-200 flex justify-between items-center sticky bottom-0 bg-white z-10">
-              <button onClick={handleExportPDF} className="flex items-center gap-2 px-5 py-2 text-white font-semibold bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
-                <Printer className="w-4 h-4" /> Xuất PDF
+            <div className="p-6 border-t border-gray-200 flex justify-between items-center sticky bottom-0 bg-white z-10 rounded-b-xl">
+              {/* ✨ THAY ĐỔI 5: Cập nhật nút Xuất PDF để xử lý trạng thái loading */}
+              <button 
+                onClick={handleExportPDF} 
+                className="flex items-center gap-2 px-5 py-2 text-white font-semibold bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:bg-green-300"
+                disabled={isGeneratingPdf}
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang xuất...</span>
+                  </>
+                ) : (
+                  <>
+                    <Printer className="w-4 h-4" /> 
+                    <span>Xuất PDF</span>
+                  </>
+                )}
               </button>
               <button onClick={() => setSelectedRecord(null)} className="px-6 py-2 text-white font-semibold bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                 Đóng
@@ -326,8 +387,6 @@ const XuatVienView: React.FC = () => {
                   className="w-full border p-2 rounded-lg"
                 />
               </div>
-
-              {/* ✨✨✨ BẮT ĐẦU THAY ĐỔI: Thêm Combobox chọn trạng thái ✨✨✨ */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái cuối cùng</label>
                 <select
@@ -340,8 +399,6 @@ const XuatVienView: React.FC = () => {
                   <option value="Chờ tái khám">Chờ tái khám</option>
                 </select>
               </div>
-              {/* ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨ */}
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
                 <textarea
