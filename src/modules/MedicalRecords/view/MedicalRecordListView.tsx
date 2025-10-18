@@ -11,11 +11,12 @@ import {
   Save,
   X,
   HeartPulse,
+  Filter,
 } from 'lucide-react';
 import { hoSoBenhAnController } from '../controller/medicalRecordController';
 import { HoSoBenhAn } from '../model/medicalRecordModel';
 import BenhNhanNoiTruModal from '../../BenhNhanNoiTru/view/benhNhanNoiTruModal';
-import { BenhNhanNoiTru } from '../../BenhNhanNoiTru/model/benhNhanNoiTruModel'; 
+import { BenhNhanNoiTru } from '../../BenhNhanNoiTru/model/benhNhanNoiTruModel';
 
 const MedicalRecordList: React.FC = () => {
   const [records, setRecords] = useState<HoSoBenhAn[]>([]);
@@ -26,6 +27,8 @@ const MedicalRecordList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newForm, setNewForm] = useState<Partial<HoSoBenhAn> | null>(null);
+  
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   const loadRecords = async () => {
     setLoading(true);
@@ -40,12 +43,16 @@ const MedicalRecordList: React.FC = () => {
 
   const filteredRecords = records.filter((record) => {
     const search = searchTerm.toLowerCase();
-    return (
+    
+    const searchMatch =
       record.maBenhAn?.toString().toLowerCase().includes(search) ||
       record.tomTatBenhAn?.toLowerCase().includes(search) ||
       record.hoTen?.toLowerCase().includes(search) ||
-      record.maBenhNhan?.toLowerCase().includes(search)
-    );
+      record.maBenhNhan?.toLowerCase().includes(search);
+
+    const statusMatch = statusFilter === '' || record.trangThai === statusFilter;
+
+    return searchMatch && statusMatch;
   });
 
   const formatDate = (dateString?: string) => {
@@ -67,6 +74,7 @@ const MedicalRecordList: React.FC = () => {
     if (!editForm.maBenhAn || !editForm.maNhapVien || !editForm.maBenhNhan || !editForm.hoTen) {
       return alert('Thiếu thông tin bệnh nhân hoặc hồ sơ để cập nhật!');
     }
+    // Trạng thái sẽ không được gửi đi từ form sửa, mà lấy lại từ bản ghi gốc
     const payload = {
       maBenhNhan: editForm.maBenhNhan,
       hoTen: editForm.hoTen,
@@ -75,7 +83,7 @@ const MedicalRecordList: React.FC = () => {
       tomTatBenhAn: editForm.tomTatBenhAn || '',
       tienSuBenh: editForm.tienSuBenh || '',
       ketQuaDieuTri: editForm.ketQuaDieuTri || '',
-      trangThai: editForm.trangThai || 'Đang điều trị',
+      trangThai: selectedRecord?.trangThai || 'Đang điều trị', // Luôn lấy trạng thái gốc
       HinhAnh: editForm.hinhAnhUrl || null,
     };
     const success = await hoSoBenhAnController.update(editForm.maBenhAn, payload);
@@ -150,28 +158,42 @@ const MedicalRecordList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header và Tìm kiếm */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="relative">
-          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo mã, tên bệnh nhân..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 w-full sm:w-auto"
-          />
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+          <div className="relative flex-grow">
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo mã, tên bệnh nhân..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 w-full"
+            />
+          </div>
+          <div className="relative">
+            <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 w-full sm:w-auto bg-white appearance-none"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="Đang điều trị">Đang điều trị</option>
+              <option value="Đã xuất viện">Đã xuất viện</option>
+              <option value="Chờ tái khám">Chờ tái khám</option>
+              <option value="Chuyển viện">Chuyển viện</option>
+            </select>
+          </div>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors whitespace-nowrap"
         >
           <Plus className="w-5 h-5" />
           <span>Thêm hồ sơ mới</span>
         </button>
       </div>
       
-      {/* Danh sách hồ sơ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredRecords.length > 0 ? (
           filteredRecords.map((record) => (
@@ -180,7 +202,6 @@ const MedicalRecordList: React.FC = () => {
               className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer"
               onClick={() => setSelectedRecord(record)}
             >
-              {/* Content của card hồ sơ */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -191,7 +212,13 @@ const MedicalRecordList: React.FC = () => {
                     <p className="text-sm text-gray-500">Mã BA: {record.maBenhAn} - Mã BN: {record.maBenhNhan}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${record.trangThai === 'Đã xuất viện' ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'}`}>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    record.trangThai === 'Đã xuất viện' ? 'bg-gray-100 text-gray-800' : 
+                    record.trangThai === 'Đang điều trị' ? 'bg-green-100 text-green-800' :
+                    record.trangThai === 'Chờ tái khám' ? 'bg-yellow-100 text-yellow-800' :
+                    record.trangThai === 'Chuyển viện' ? 'bg-purple-100 text-purple-800' :
+                    'bg-blue-100 text-blue-800'
+                }`}>
                   {record.trangThai || 'N/A'}
                 </span>
               </div>
@@ -209,15 +236,13 @@ const MedicalRecordList: React.FC = () => {
             </div>
           ))
         ) : (
-          <p className="text-center text-gray-500 col-span-1 lg:col-span-2 py-10">Không tìm thấy hồ sơ nào.</p>
+          <p className="text-center text-gray-500 col-span-1 lg:col-span-2 py-10">Không tìm thấy hồ sơ nào khớp với bộ lọc.</p>
         )}
       </div>
 
-      {/* ✨✨✨ BẮT ĐẦU: MODAL CHI TIẾT & CHỈNH SỬA HỒ SƠ ✨✨✨ */}
       {selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto flex flex-col">
-            {/* Header của Modal */}
             <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800">Hồ sơ: {selectedRecord.hoTen}</h2>
@@ -230,10 +255,7 @@ const MedicalRecordList: React.FC = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-
-            {/* Body của Modal */}
             <div className="p-6 space-y-6 flex-grow">
-              {/* Vùng ảnh */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Hình ảnh hồ sơ</h3>
                 {editing ? (
@@ -247,8 +269,6 @@ const MedicalRecordList: React.FC = () => {
                   <p className="text-gray-400 italic">Không có hình ảnh</p>
                 )}
               </div>
-
-              {/* Thông tin bệnh nhân (không sửa) */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">Thông tin bệnh nhân</h3>
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-700'>
@@ -257,8 +277,6 @@ const MedicalRecordList: React.FC = () => {
                       <p><span className='font-medium'>Mã nhập viện:</span> {selectedRecord.maNhapVien}</p>
                   </div>
               </div>
-
-              {/* Các trường thông tin có thể chỉnh sửa */}
               {[
                 { key: 'tomTatBenhAn', label: 'Tóm tắt bệnh án' },
                 { key: 'tienSuBenh', label: 'Tiền sử bệnh' },
@@ -281,28 +299,19 @@ const MedicalRecordList: React.FC = () => {
                 </div>
               ))}
               
-              {/* Trường Trạng thái */}
+              {/* ✨✨✨ BẮT ĐẦU THAY ĐỔI: Không cho phép sửa trạng thái ✨✨✨ */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Trạng thái</h3>
-                {editing ? (
-                    <select
-                        value={editForm.trangThai || 'Đang điều trị'}
-                        onChange={(e) => setEditForm({ ...editForm, trangThai: e.target.value })}
-                        className="w-full p-3 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
-                    >
-                        <option value="Đang điều trị">Đang điều trị</option>
-                        <option value="Đã xuất viện">Đã xuất viện</option>
-                        <option value="Chuyển viện">Chuyển viện</option>
-                    </select>
-                ) : (
-                  <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
-                    {selectedRecord.trangThai || 'Chưa có thông tin'}
-                  </p>
+                <p className="text-gray-700 bg-gray-100 p-3 rounded-lg border cursor-not-allowed">
+                  {selectedRecord.trangThai || 'Chưa có thông tin'}
+                </p>
+                {editing && (
+                    <p className='text-xs text-gray-500 mt-1 italic'>Trạng thái chỉ có thể được thay đổi thông qua chức năng Xuất viện.</p>
                 )}
               </div>
-            </div>
+              {/* ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨ */}
 
-            {/* Footer của Modal với các nút hành động */}
+            </div>
             <div className="p-6 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white z-10">
               {editing ? (
                 <>
@@ -319,9 +328,7 @@ const MedicalRecordList: React.FC = () => {
           </div>
         </div>
       )}
-      {/* ✨✨✨ KẾT THÚC: MODAL CHI TIẾT & CHỈNH SỬA HỒ SƠ ✨✨✨ */}
 
-      {/* Modal chọn bệnh nhân để thêm hồ sơ mới */}
       {showModal && (
         <BenhNhanNoiTruModal
           onClose={() => setShowModal(false)}
@@ -346,7 +353,6 @@ const MedicalRecordList: React.FC = () => {
         />
       )}
       
-      {/* Form thêm hồ sơ mới */}
       {newForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg w-[90%] max-w-3xl">

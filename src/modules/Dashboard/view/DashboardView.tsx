@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { dashboardController, DashboardStats } from '../controller/dashboardController'; // Đường dẫn tới controller mới
-import { Bed, FileText, Stethoscope, User, Calendar } from 'lucide-react';
+import { dashboardController, DashboardStats } from '../controller/dashboardController'; // Đường dẫn tới controller
+import { Bed, FileText, Stethoscope, UserCheck } from 'lucide-react'; // ✨ Thêm icon UserCheck
 
 const DashboardView: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -35,7 +35,8 @@ const DashboardView: React.FC = () => {
       <h1 className="text-3xl font-bold text-gray-800">Tổng quan Dashboard</h1>
 
       {/* --- PHẦN THỐNG KÊ TỔNG QUAN (KPIs) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ✨ THAY ĐỔI 1: Cập nhật grid layout để có 4 cột trên màn hình lớn */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card Bệnh nhân nội trú */}
         <div className="bg-white p-6 rounded-xl border shadow-sm flex items-center space-x-4">
           <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
@@ -68,10 +69,22 @@ const DashboardView: React.FC = () => {
             <p className="text-3xl font-bold text-gray-800">{stats.soYLenh}</p>
           </div>
         </div>
+        
+        {/* ✨ THAY ĐỔI 2: Thêm card thống kê bệnh nhân xuất viện */}
+        <div className="bg-white p-6 rounded-xl border shadow-sm flex items-center space-x-4">
+          <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
+            <UserCheck className="w-7 h-7 text-purple-600" />
+          </div>
+          <div>
+            <p className="text-gray-500 text-sm">Đã xuất viện</p>
+            <p className="text-3xl font-bold text-gray-800">{stats.soBenhNhanXuatVien}</p>
+          </div>
+        </div>
       </div>
 
       {/* --- PHẦN HOẠT ĐỘNG GẦN ĐÂY --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ✨ THAY ĐỔI 3: Cập nhật grid layout để có 3 cột */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cột Y lệnh gần đây */}
         <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
           <h2 className="text-xl font-semibold text-gray-800">Y lệnh gần đây</h2>
@@ -110,6 +123,28 @@ const DashboardView: React.FC = () => {
             )}
           </div>
         </div>
+        
+        {/* ✨ THAY ĐỔI 4: Thêm cột Bệnh nhân xuất viện gần đây */}
+        <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
+          <h2 className="text-xl font-semibold text-gray-800">Bệnh nhân xuất viện gần đây</h2>
+          <div className="space-y-3">
+            {stats.benhNhanXuatVienGanDay.length > 0 ? (
+              stats.benhNhanXuatVienGanDay.map(xuatVien => (
+                <div key={xuatVien.maXuatVien} className="p-3 border-l-4 border-purple-400 bg-gray-50 rounded-r-lg">
+                  <div className="flex justify-between items-center">
+                    <p className="font-semibold text-gray-800">{xuatVien.hoTen}</p>
+                    <span className="text-xs text-gray-500">{formatDate(xuatVien.ngayRaVien)}</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Trạng thái: {xuatVien.trangThai}</p>
+                  <p className="text-sm text-gray-600 truncate" title={xuatVien.ghiChu}>Ghi chú: {xuatVien.ghiChu || 'Không có'}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">Chưa có bệnh nhân nào xuất viện gần đây.</p>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

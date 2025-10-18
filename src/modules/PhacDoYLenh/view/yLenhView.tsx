@@ -31,7 +31,7 @@ const HoSoBenhAnSelectModal: React.FC<HoSoBenhAnSelectModalProps> = ({ records, 
               <p className="font-semibold text-gray-800">{record.hoTen} (Mã BN: {record.maBenhNhan})</p>
               <p className="text-sm text-gray-600">Mã Bệnh Án: {record.maBenhAn} - Tóm tắt: {record.tomTatBenhAn || 'N/A'}</p>
             </div>
-          )) : <p className="text-center text-gray-500">Không có hồ sơ bệnh án nào.</p>}
+          )) : <p className="text-center text-gray-500 py-4">Không có bệnh án nào đang trong trạng thái "Đang điều trị".</p>}
         </div>
       </div>
     </div>
@@ -52,7 +52,6 @@ const YLenhList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   
-  // ✨ THAY ĐỔI: Cập nhật state cho các modal
   const [showAddYLenhModal, setShowAddYLenhModal] = useState<boolean>(false);
   const [showSelectRecordModal, setShowSelectRecordModal] = useState<boolean>(false);
   const [medicalRecords, setMedicalRecords] = useState<HoSoBenhAn[]>([]);
@@ -79,27 +78,26 @@ const YLenhList: React.FC = () => {
     return `${day}/${month}/${year}`;
   };
 
-  // ✨ THAY ĐỔI: Hàm bắt đầu luồng thêm mới
+  // ✨✨✨ BẮT ĐẦU THAY ĐỔI: Lọc danh sách bệnh án theo trạng thái "Đang điều trị" ✨✨✨
   const handleInitiateAdd = async () => {
-    // 1. Lấy danh sách hồ sơ bệnh án
-    const recordsData = await hoSoBenhAnController.getAll();
-    setMedicalRecords(recordsData);
-    // 2. Mở modal chọn bệnh án
+    // 1. Lấy tất cả hồ sơ bệnh án
+    const allRecords = await hoSoBenhAnController.getAll();
+    // 2. Lọc ra những hồ sơ có trạng thái là 'Đang điều trị'
+    const activeRecords = allRecords.filter(record => record.trangThai === 'Đang điều trị');
+    setMedicalRecords(activeRecords);
+    // 3. Mở modal chọn bệnh án
     setShowSelectRecordModal(true);
   };
+  // ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨
   
-  // ✨ THAY ĐỔI: Hàm xử lý khi một bệnh án được chọn
   const handleRecordSelect = (record: HoSoBenhAn) => {
-    // 1. Đóng modal chọn
     setShowSelectRecordModal(false);
-    // 2. Điền sẵn thông tin vào form
     setEditingId(null);
     setFormData({
       ...initialFormState,
-      maBenhAn: String(record.maBenhAn), // Dữ liệu được truyền vào
+      maBenhAn: String(record.maBenhAn),
     });
     setFormFile(null);
-    // 3. Mở modal thêm y lệnh
     setShowAddYLenhModal(true);
   };
 
@@ -137,7 +135,6 @@ const YLenhList: React.FC = () => {
       file: formFile || undefined,
     };
     
-    // ✨ THAY ĐỔI: Sử dụng hàm `create` mới từ controller
     let success = false;
     if (editingId) {
       success = await yLenhController.update(editingId, payload);
@@ -183,14 +180,12 @@ const YLenhList: React.FC = () => {
           <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input type="text" placeholder="Tìm kiếm theo nội dung, tên BN..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto" />
         </div>
-        {/* ✨ THAY ĐỔI: Nút thêm gọi hàm mới */}
         <button onClick={handleInitiateAdd} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2">
           <Plus className="w-5 h-5" />
           <span>Thêm y lệnh mới</span>
         </button>
       </div>
 
-      {/* ✨ THAY ĐỔI: Hiển thị Modal chọn bệnh án */}
       {showSelectRecordModal && (
         <HoSoBenhAnSelectModal 
           records={medicalRecords}
@@ -199,7 +194,6 @@ const YLenhList: React.FC = () => {
         />
       )}
 
-      {/* ✨ THAY ĐỔI: Đổi tên state điều khiển modal */}
       {showAddYLenhModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
           <div className="bg-white rounded-xl p-6 shadow-2xl w-full max-w-lg space-y-4">

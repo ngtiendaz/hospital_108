@@ -1,25 +1,16 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 
-
-
 // Import models
-
 import { HoSoBenhAn } from '../../MedicalRecords/model/medicalRecordModel';
-
 import { TinhTrangSucKhoe } from '../model/tinhTrangModel';
 
-
-
 // Import controllers
-
 import { hoSoBenhAnController } from '../../MedicalRecords/controller/medicalRecordController';
-
 import { tinhTrangSucKhoeController } from '../controller/tinhTrangController';
 
 // Import icons
-import { FileText, User, Calendar, Plus, Search, ArrowLeft, Send, Activity, BookText, Stethoscope } from 'lucide-react';
+import { FileText, User, Calendar, Plus, Search, ArrowLeft, Send, Activity, BookText, Stethoscope, Filter, Info } from 'lucide-react';
 
 const TinhTrangSucKhoeView: React.FC = () => {
   // --- STATE QUẢN LÝ CHUNG ---
@@ -27,6 +18,10 @@ const TinhTrangSucKhoeView: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<HoSoBenhAn | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // ✨✨✨ BẮT ĐẦU THAY ĐỔI: Đặt giá trị mặc định cho bộ lọc là 'Đang điều trị' ✨✨✨
+  const [statusFilter, setStatusFilter] = useState<string>('Đang điều trị'); 
+  // ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨
 
   // --- STATE CHO TRANG CHI TIẾT ---
   const [healthStatuses, setHealthStatuses] = useState<TinhTrangSucKhoe[]>([]);
@@ -35,7 +30,6 @@ const TinhTrangSucKhoeView: React.FC = () => {
 
   // --- TẢI DỮ LIỆU ---
 
-  // Tải danh sách hồ sơ bệnh án khi component được mount
   useEffect(() => {
     const loadRecords = async () => {
       setLoading(true);
@@ -46,7 +40,6 @@ const TinhTrangSucKhoeView: React.FC = () => {
     loadRecords();
   }, []);
 
-  // Tải danh sách tình trạng sức khỏe khi một bệnh án được chọn
   useEffect(() => {
     if (!selectedRecord) return;
 
@@ -58,7 +51,7 @@ const TinhTrangSucKhoeView: React.FC = () => {
       setStatusesLoading(false);
     };
     loadHealthStatuses();
-  }, [selectedRecord]); // Chạy lại khi selectedRecord thay đổi
+  }, [selectedRecord]);
 
   // --- HÀM XỬ LÝ SỰ KIỆN ---
 
@@ -68,7 +61,7 @@ const TinhTrangSucKhoeView: React.FC = () => {
 
   const handleGoBackToList = () => {
     setSelectedRecord(null);
-    setHealthStatuses([]); // Xóa dữ liệu cũ
+    setHealthStatuses([]);
   };
 
   const handleAddStatus = async () => {
@@ -79,7 +72,7 @@ const TinhTrangSucKhoeView: React.FC = () => {
 
     const payload = {
       maBenhAn: selectedRecord.maBenhAn,
-      ngay: new Date().toISOString().slice(0, 10), // Luôn là ngày hôm nay
+      ngay: new Date().toISOString().slice(0, 10),
       tinhTrang: newStatus.tinhTrang,
       ghiChu: newStatus.ghiChu,
     };
@@ -88,8 +81,7 @@ const TinhTrangSucKhoeView: React.FC = () => {
 
     if (success) {
       alert('✅ Cập nhật tình trạng sức khỏe thành công!');
-      setNewStatus({ tinhTrang: '', ghiChu: '' }); // Reset form
-      // Tải lại danh sách tình trạng để hiển thị dữ liệu mới
+      setNewStatus({ tinhTrang: '', ghiChu: '' });
       const data = await tinhTrangSucKhoeController.getByMaBenhAn(selectedRecord.maBenhAn);
       const sortedData = data.sort((a, b) => new Date(b.ngay).getTime() - new Date(a.ngay).getTime());
       setHealthStatuses(sortedData);
@@ -98,20 +90,19 @@ const TinhTrangSucKhoeView: React.FC = () => {
     }
   };
 
-  // Lọc danh sách bệnh án dựa trên tìm kiếm
-  const filteredRecords = medicalRecords.filter(record =>
-    record.hoTen.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.maBenhAn.toString().includes(searchTerm)
-  );
+  const filteredRecords = medicalRecords.filter(record => {
+    const searchMatch = record.hoTen.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        record.maBenhAn.toString().includes(searchTerm);
+    const statusMatch = statusFilter === '' || record.trangThai === statusFilter;
+    return searchMatch && statusMatch;
+  });
 
   // --- RENDER GIAO DIỆN ---
 
-  // Giao diện loading ban đầu
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Đang tải danh sách bệnh án...</div>;
   }
 
-  // Giao diện trang chi tiết
   if (selectedRecord) {
     return (
       <div className="space-y-6">
@@ -123,70 +114,74 @@ const TinhTrangSucKhoeView: React.FC = () => {
           <span>Quay lại danh sách</span>
         </button>
 
-        {/* ✨ THAY ĐỔI: Khối thông tin bệnh án đã được mở rộng */}
         <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">{selectedRecord.hoTen}</h1>
-              <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-gray-400" /> Mã Bệnh Án: <strong>{selectedRecord.maBenhAn}</strong></div>
-                <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /> Mã Bệnh Nhân: <strong>{selectedRecord.maBenhNhan}</strong></div>
-              </div>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
+                <div>
+                <h1 className="text-2xl font-bold text-gray-800">{selectedRecord.hoTen}</h1>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-gray-400" /> Mã Bệnh Án: <strong>{selectedRecord.maBenhAn}</strong></div>
+                    <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /> Mã Bệnh Nhân: <strong>{selectedRecord.maBenhNhan}</strong></div>
+                </div>
+                </div>
+                <div className="flex-shrink-0 mt-2 sm:mt-0">
+                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${selectedRecord.trangThai === 'Đã xuất viện' ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-800'}`}>
+                    {selectedRecord.trangThai || 'N/A'}
+                </span>
+                </div>
             </div>
-            <div className="flex-shrink-0 mt-2 sm:mt-0">
-              <span className={`px-3 py-1 text-sm font-semibold rounded-full ${selectedRecord.trangThai === 'Đã xuất viện' ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-800'}`}>
-                {selectedRecord.trangThai || 'N/A'}
-              </span>
-            </div>
-          </div>
 
-          <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-            <div>
-              <h4 className="font-semibold text-gray-500 mb-1 flex items-center gap-2"><Stethoscope size={16}/>Tóm tắt bệnh án</h4>
-              <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedRecord.tomTatBenhAn || 'Chưa có thông tin'}</p>
+            <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                <div>
+                <h4 className="font-semibold text-gray-500 mb-1 flex items-center gap-2"><Stethoscope size={16}/>Tóm tắt bệnh án</h4>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedRecord.tomTatBenhAn || 'Chưa có thông tin'}</p>
+                </div>
+                <div>
+                <h4 className="font-semibold text-gray-500 mb-1 flex items-center gap-2"><BookText size={16}/>Tiền sử bệnh</h4>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedRecord.tienSuBenh || 'Chưa có thông tin'}</p>
+                </div>
+                <div className="md:col-span-2">
+                <h4 className="font-semibold text-gray-500 mb-1 flex items-center gap-2"><Activity size={16}/>Kết quả điều trị</h4>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedRecord.ketQuaDieuTri || 'Chưa có thông tin'}</p>
+                </div>
             </div>
-            <div>
-              <h4 className="font-semibold text-gray-500 mb-1 flex items-center gap-2"><BookText size={16}/>Tiền sử bệnh</h4>
-              <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedRecord.tienSuBenh || 'Chưa có thông tin'}</p>
-            </div>
-            <div className="md:col-span-2">
-              <h4 className="font-semibold text-gray-500 mb-1 flex items-center gap-2"><Activity size={16}/>Kết quả điều trị</h4>
-              <p className="text-gray-700 bg-gray-50 p-3 rounded-md">{selectedRecord.ketQuaDieuTri || 'Chưa có thông tin'}</p>
-            </div>
-          </div>
         </div>
 
-        {/* Form thêm tình trạng sức khỏe mới */}
-        <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold">Cập nhật tình trạng sức khỏe hôm nay</h2>
-          <div className="space-y-3">
-            <textarea
-              value={newStatus.tinhTrang}
-              onChange={(e) => setNewStatus({ ...newStatus, tinhTrang: e.target.value })}
-              placeholder="Tình trạng (ví dụ: Sốt nhẹ, ho khan...)"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
-              rows={2}
-            />
-            <textarea
-              value={newStatus.ghiChu}
-              onChange={(e) => setNewStatus({ ...newStatus, ghiChu: e.target.value })}
-              placeholder="Ghi chú (ví dụ: Đã cho uống thuốc hạ sốt...)"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
-              rows={2}
-            />
+        {selectedRecord.trangThai === 'Đang điều trị' ? (
+          <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
+            <h2 className="text-lg font-semibold">Cập nhật tình trạng sức khỏe hôm nay</h2>
+            <div className="space-y-3">
+              <textarea
+                value={newStatus.tinhTrang}
+                onChange={(e) => setNewStatus({ ...newStatus, tinhTrang: e.target.value })}
+                placeholder="Tình trạng (ví dụ: Sốt nhẹ, ho khan...)"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                rows={2}
+              />
+              <textarea
+                value={newStatus.ghiChu}
+                onChange={(e) => setNewStatus({ ...newStatus, ghiChu: e.target.value })}
+                placeholder="Ghi chú (ví dụ: Đã cho uống thuốc hạ sốt...)"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                rows={2}
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleAddStatus}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+              >
+                <Send className="w-4 h-4" />
+                <span>Gửi cập nhật</span>
+              </button>
+            </div>
           </div>
-          <div className="flex justify-end">
-            <button
-              onClick={handleAddStatus}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-            >
-              <Send className="w-4 h-4" />
-              <span>Gửi cập nhật</span>
-            </button>
+        ) : (
+          <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200 flex items-center gap-3">
+            <Info className="w-5 h-5 flex-shrink-0" />
+            <p className="font-medium text-sm">Bệnh án này đã ở trạng thái "{selectedRecord.trangThai}". Không thể cập nhật thêm tình trạng sức khỏe.</p>
           </div>
-        </div>
+        )}
         
-        {/* Lịch sử tình trạng sức khỏe */}
         <div className="space-y-4">
             <h2 className="text-xl font-semibold text-gray-800">Lịch sử theo dõi</h2>
             {statusesLoading ? (
@@ -218,20 +213,35 @@ const TinhTrangSucKhoeView: React.FC = () => {
     );
   }
 
-  // Giao diện danh sách bệnh án (mặc định)
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-xl font-bold text-gray-800">Chọn Bệnh Án để xem Tình Trạng</h1>
-        <div className="relative">
-          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Tìm bệnh án..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto"
-          />
+        <h1 className="text-xl font-bold text-gray-800">Chọn Bệnh Án để Theo dõi</h1>
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div className="relative">
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Tìm theo tên, mã..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 w-full"
+            />
+          </div>
+          <div className="relative">
+            <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 w-full bg-white appearance-none"
+            >
+              <option value="Đang điều trị">Đang điều trị</option>
+              <option value="">Tất cả trạng thái</option>
+              <option value="Đã xuất viện">Đã xuất viện</option>
+              <option value="Chờ tái khám">Chờ tái khám</option>
+              <option value="Chuyển viện">Chuyển viện</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -257,7 +267,13 @@ const TinhTrangSucKhoeView: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-shrink-0 pt-1">
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${record.trangThai === 'Đã xuất viện' ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-800'}`}>
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      record.trangThai === 'Đã xuất viện' ? 'bg-gray-100 text-gray-700' : 
+                      record.trangThai === 'Đang điều trị' ? 'bg-green-100 text-green-800' :
+                      record.trangThai === 'Chờ tái khám' ? 'bg-yellow-100 text-yellow-800' :
+                      record.trangThai === 'Chuyển viện' ? 'bg-purple-100 text-purple-800' :
+                      'bg-blue-100 text-blue-800'
+                  }`}>
                     {record.trangThai || 'N/A'}
                   </span>
                 </div>
@@ -266,7 +282,7 @@ const TinhTrangSucKhoeView: React.FC = () => {
           ))
         ) : (
           <p className="text-center text-gray-500 col-span-1 py-12">
-            Không tìm thấy hồ sơ bệnh án nào.
+            Không tìm thấy hồ sơ bệnh án nào khớp với bộ lọc.
           </p>
         )}
       </div>

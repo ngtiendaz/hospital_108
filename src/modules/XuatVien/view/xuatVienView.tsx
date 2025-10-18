@@ -12,7 +12,7 @@ import {
   Printer,
   Plus
 } from 'lucide-react';
-import { xuatVienController } from '../controller/xuatVienController'; 
+import { xuatVienController } from '../controller/xuatVienController';
 import { XuatVien } from '../model/xuatVienModel';
 import { hoSoBenhAnController } from '../../MedicalRecords/controller/medicalRecordController';
 import { HoSoBenhAn } from '../../MedicalRecords/model/medicalRecordModel';
@@ -29,6 +29,9 @@ const XuatVienView: React.FC = () => {
   const [showMedicalRecordModal, setShowMedicalRecordModal] = useState(false);
   const [medicalRecords, setMedicalRecords] = useState<HoSoBenhAn[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
+  
+  const [selectedRecordForDischarge, setSelectedRecordForDischarge] = useState<HoSoBenhAn | null>(null);
+
   const [dischargeForm, setDischargeForm] = useState<{
     maBenhAn: number;
     hoTen: string;
@@ -59,35 +62,64 @@ const XuatVienView: React.FC = () => {
     setModalLoading(false);
   };
 
-  // Chọn hồ sơ để xuất viện
+  // Lưu lại toàn bộ thông tin hồ sơ khi chọn
   const handleSelectRecordForDischarge = (record: HoSoBenhAn) => {
+    setSelectedRecordForDischarge(record);
     setShowMedicalRecordModal(false);
     setDischargeForm({
       maBenhAn: record.maBenhAn,
       hoTen: record.hoTen,
       ngayRaVien: new Date().toISOString().split('T')[0],
-      trangThai: 'Đã xuất viện',
+      trangThai: 'Đã xuất viện', // Giá trị mặc định
       ghiChu: '',
     });
   };
 
-  // Lưu thông tin xuất viện
+  // Cập nhật trạng thái hồ sơ sau khi xuất viện thành công
   const handleAddDischarge = async () => {
-    if (!dischargeForm) return;
-    const success = await xuatVienController.add({
+    if (!dischargeForm || !selectedRecordForDischarge) {
+      alert('❌ Đã có lỗi xảy ra, vui lòng thử lại.');
+      return;
+    };
+
+    // 1. Thêm thông tin vào bảng xuất viện
+    const addSuccess = await xuatVienController.add({
       maBenhAn: dischargeForm.maBenhAn,
       ngayRaVien: dischargeForm.ngayRaVien,
       trangThai: dischargeForm.trangThai,
       ghiChu: dischargeForm.ghiChu,
     });
     
-    if (success) {
-      alert('✅ Thêm thông tin xuất viện thành công!');
+    if (addSuccess) {
+      // 2. Nếu thành công, cập nhật trạng thái của hồ sơ bệnh án gốc
+      console.log('Đang cập nhật trạng thái hồ sơ bệnh án...');
+      const updateSuccess = await hoSoBenhAnController.update(
+        selectedRecordForDischarge.maBenhAn,
+        {
+          ...selectedRecordForDischarge,
+          trangThai: dischargeForm.trangThai, // Cập nhật trạng thái được chọn từ combobox
+        }
+      );
+
+      if (updateSuccess) {
+        alert('✅ Thêm thông tin xuất viện và cập nhật hồ sơ thành công!');
+      } else {
+        alert('✅ Thêm thông tin xuất viện thành công, nhưng có lỗi khi cập nhật trạng thái hồ sơ bệnh án.');
+      }
+      
+      // 3. Dọn dẹp và tải lại danh sách
       setDischargeForm(null);
+      setSelectedRecordForDischarge(null);
       await loadDischargedRecords();
     } else {
       alert('❌ Lỗi khi thêm thông tin xuất viện!');
     }
+  };
+  
+  // Hàm hủy và dọn dẹp state
+  const handleCancelDischargeForm = () => {
+    setDischargeForm(null);
+    setSelectedRecordForDischarge(null);
   };
 
   // Lọc danh sách
@@ -278,13 +310,11 @@ const XuatVienView: React.FC = () => {
           <div className="bg-white rounded-xl shadow-lg w-[90%] max-w-2xl">
             <div className="p-5 border-b">
               <h2 className="text-xl font-semibold">Thông tin Xuất viện</h2>
-              {/* ✨✨✨ BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ✨✨✨ */}
               <p className="text-sm text-gray-500 mt-1">
                 Bệnh nhân: <span className="font-medium text-blue-700">{dischargeForm.hoTen}</span>
                 <span className="mx-2">|</span>
                 Mã Bệnh Án: <span className="font-medium text-blue-700">{dischargeForm.maBenhAn}</span>
               </p>
-              {/* ✨✨✨ KẾT THÚC THAY ĐỔI TẠI ĐÂY ✨✨✨ */}
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -296,6 +326,22 @@ const XuatVienView: React.FC = () => {
                   className="w-full border p-2 rounded-lg"
                 />
               </div>
+
+              {/* ✨✨✨ BẮT ĐẦU THAY ĐỔI: Thêm Combobox chọn trạng thái ✨✨✨ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái cuối cùng</label>
+                <select
+                  value={dischargeForm.trangThai}
+                  onChange={(e) => setDischargeForm({ ...dischargeForm, trangThai: e.target.value })}
+                  className="w-full border p-2 rounded-lg bg-white"
+                >
+                  <option value="Đã xuất viện">Đã xuất viện</option>
+                  <option value="Chuyển viện">Chuyển viện</option>
+                  <option value="Chờ tái khám">Chờ tái khám</option>
+                </select>
+              </div>
+              {/* ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨ */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
                 <textarea
@@ -308,7 +354,7 @@ const XuatVienView: React.FC = () => {
             </div>
             <div className="p-4 flex justify-end space-x-3 border-t bg-gray-50 rounded-b-xl">
               <button onClick={handleAddDischarge} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">Lưu thông tin</button>
-              <button onClick={() => setDischargeForm(null)} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100">Hủy</button>
+              <button onClick={handleCancelDischargeForm} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100">Hủy</button>
             </div>
           </div>
         </div>
