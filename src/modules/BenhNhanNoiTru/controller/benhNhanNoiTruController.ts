@@ -1,8 +1,8 @@
 import { BenhNhanNoiTru } from '../model/benhNhanNoiTruModel';
 // ✅ Import controller của hồ sơ bệnh án để kiểm tra
 import { hoSoBenhAnController } from '../../MedicalRecords/controller/medicalRecordController'; // Sửa đường dẫn nếu cần
-
-const BASE_URL = 'http://localhost:3000/';
+import { APIs } from '../../../config/apiConfig';
+const BASE_URL = APIs;
 const API = BASE_URL + 'api/v1/nhapvien';
 
 // Hàm helper để lấy toàn bộ danh sách bệnh nhân nội trú (chưa lọc)

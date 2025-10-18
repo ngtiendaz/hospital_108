@@ -1,6 +1,6 @@
 import { TinhTrangSucKhoe } from '../model/tinhTrangModel';
-
-const BASE_URL = 'http://localhost:3000/';
+import { APIs } from '../../../config/apiConfig';
+const BASE_URL = APIs;
 // API để lấy danh sách tình trạng sức khỏe theo mã bệnh án
 const API_GET = BASE_URL + 'api/v1/tinhtrangbenh/'; 
 // API để cập nhật (thêm mới) một tình trạng sức khỏe

@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { YLenh } from '../model/yLenhModel';
 import { yLenhController } from '../controller/yLenhController';
-import { HoSoBenhAn } from '../../MedicalRecords/model/medicalRecordModel'; // Import model HoSoBenhAn
-import { hoSoBenhAnController } from '../../MedicalRecords/controller/medicalRecordController'; // Import controller HoSoBenhAn
+import { HoSoBenhAn } from '../../MedicalRecords/model/medicalRecordModel';
+import { hoSoBenhAnController } from '../../MedicalRecords/controller/medicalRecordController';
 import { FileText, Pencil, Trash2, X, Upload, Search, Plus, User, BedDouble, DoorOpen, Calendar } from 'lucide-react';
 
 // --- COMPONENT CON: MODAL ĐỂ CHỌN HỒ SƠ BỆNH ÁN ---
@@ -78,17 +78,12 @@ const YLenhList: React.FC = () => {
     return `${day}/${month}/${year}`;
   };
 
-  // ✨✨✨ BẮT ĐẦU THAY ĐỔI: Lọc danh sách bệnh án theo trạng thái "Đang điều trị" ✨✨✨
   const handleInitiateAdd = async () => {
-    // 1. Lấy tất cả hồ sơ bệnh án
     const allRecords = await hoSoBenhAnController.getAll();
-    // 2. Lọc ra những hồ sơ có trạng thái là 'Đang điều trị'
     const activeRecords = allRecords.filter(record => record.trangThai === 'Đang điều trị');
     setMedicalRecords(activeRecords);
-    // 3. Mở modal chọn bệnh án
     setShowSelectRecordModal(true);
   };
-  // ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨
   
   const handleRecordSelect = (record: HoSoBenhAn) => {
     setShowSelectRecordModal(false);
@@ -208,7 +203,16 @@ const YLenhList: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mã Bác Sĩ (*)</label>
-                <input type="text" name="maBacSi" value={formData.maBacSi} onChange={(e) => setFormData(prev => ({...prev, maBacSi: e.target.value}))} className="w-full p-2 border rounded-lg" />
+                {/* ✨✨✨ BẮT ĐẦU THAY ĐỔI: Thêm logic readOnly cho ô Mã Bác Sĩ ✨✨✨ */}
+                <input 
+                  type="text" 
+                  name="maBacSi" 
+                  value={formData.maBacSi} 
+                  onChange={(e) => setFormData(prev => ({...prev, maBacSi: e.target.value}))} 
+                  className={`w-full p-2 border rounded-lg ${editingId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  readOnly={!!editingId} // Chuyển editingId thành boolean (true nếu có, false nếu null)
+                />
+                {/* ✨✨✨ KẾT THÚC THAY ĐỔI ✨✨✨ */}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Trạng Thái</label>

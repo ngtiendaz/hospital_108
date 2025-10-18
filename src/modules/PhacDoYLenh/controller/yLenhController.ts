@@ -1,6 +1,6 @@
 import { YLenh } from '../model/yLenhModel';
-
-const BASE_URL = 'http://localhost:3000/';
+import { APIs } from '../../../config/apiConfig';
+const BASE_URL = APIs;
 const API_GET_ALL = BASE_URL + 'api/v1/phacdo/getAll';
 const API_CREATE = BASE_URL + 'api/v1/phacdo/add'; 
 const API_UPDATE = BASE_URL + 'api/v1/phacdo/update/';

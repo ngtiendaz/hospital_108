@@ -1,6 +1,7 @@
 import { HoSoBenhAn } from '../model/medicalRecordModel';
 
-const BASE_URL = 'http://localhost:3000/';
+import { APIs } from '../../../config/apiConfig';
+const BASE_URL = APIs;
 const API = BASE_URL + 'api/v1/danhsachbenhannoitru';
 const ADD_API = BASE_URL + 'api/v1/benhannoitru';
 const DELETE_API = BASE_URL + 'api/v1/xoabenhannoitru';

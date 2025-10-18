@@ -1,8 +1,8 @@
 import { BenhNhan } from '../model/patientModel';
 // ✅ Thêm import controller của bệnh nhân nội trú
 import { benhNhanNoiTruController } from '../../BenhNhanNoiTru/controller/benhNhanNoiTruController'; // Điều chỉnh đường dẫn nếu cần
-
-const BASE_URL = 'http://localhost:3000/';
+import { APIs } from '../../../config/apiConfig';
+const BASE_URL = APIs;
 const API = BASE_URL + 'api/v1/benhnhan';
 const API_NHAPVIEN = BASE_URL + 'api/v1/nhapvien';
 
