@@ -4,7 +4,6 @@ import Header from './components/Layout/Header';
 import Dashboard from './modules/Dashboard/view/DashboardView';
 import PatientList from './modules/Patients/view/PatientListView';
 import MedicalRecordList from './modules/MedicalRecords/view/MedicalRecordListView';
-import CostList from './modules/Costs/view/CostListView';
 import YLenhList from './modules/PhacDoYLenh/view/yLenhView';
 import TinhTrangSucKhoeView from './modules/TinhTrangBenhNhan/view/tinhTrangView';
 import XuatVienView from './modules/XuatVien/view/xuatVienView';
